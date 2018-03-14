@@ -13,11 +13,8 @@
 //ゲームモード定義
 //--------------------------------------------------------------------------------------
 const GAMEMODE_INIT					= 0;
-const GAMEMODE_GDCLOGO				= 100;
-const GAMEMODE_TITLE				= 200;
-const GAMEMODE_OPENING				= 300;
 const GAMEMODE_GAME					= 500;
-
+const GAMEMODE_DEBUG                = 999;
 
 
 //--------------------------------------------------------------------------------------
@@ -33,6 +30,9 @@ const TEXTURE_PLAYER_IDLING	= 6;
 const TEXTURE_KIDS			= 7;
 const TEXTURE_FADE_BLACK	= 10;
 const TEXTURE_FADE_WHITE	= 11;
+
+const TEXTURE_TEST_RED      = 12;
+const TEXTURE_TEST_BLUE     = 13;
 
 const TEXTURE_LINE			= 98;
 const TEXTURE_PLANE			= 99;			//ちょっと荒いけど利用させてもらう
@@ -59,6 +59,15 @@ let interval;  											// ゲームを実行するタイマーを保持する
 
 let hitrect_visible_flag = 0;
 
+// 重力加速度のしきい値
+const GRAVITY_MIN = 9.8;
+const GRAVITY_MAX = 12.00;
+// 歩数
+let _step = 0;
+// 現在歩いているかどうか
+let _isStep = false;
+
+
 
 
 //--------------------------------------------------------------------------------------
@@ -72,6 +81,11 @@ const uv1280=
 const hit_check_rect =
 [
 	[ 4, 4, 2, 2, 0, 0 ],
+];
+
+const test_red_rect =
+[
+    [ 0, 0, 640, 1136, 640 / 2, 1136 / 2 ],
 ];
 
 
@@ -127,7 +141,8 @@ function GAME_system_grp_load( )
 	SOZ_Texture_Load( TEXTURE_PLANE			, "grp/airplane01.png" );
 	SOZ_Texture_Load( TEXTURE_LINE			, "grp/line_0.png" );
 
-
+    SOZ_Texture_Load( TEXTURE_TEST_RED    	, "grp/test.png" );
+    SOZ_Texture_Load( TEXTURE_TEST_BLUE     , "grp/test2.png" );   
 
 	SOZ_Texture_Load( TEXTURE_OPEN1			, "grp/open1.png" );
 	SOZ_Texture_Load( TEXTURE_OPEN2			, "grp/open2.png" );
@@ -234,32 +249,131 @@ function GAME_title_start( )
 
 
 
-
-
-
 //---------------------------------------------------------
-// GDCロゴ表示
+// デバッグモード時には青いグラフィックを
 //---------------------------------------------------------
-function GAME_gdc_logo_exec( ap )
+function GAME_test_blue_square_exec( ap )
 {
-	if( !( game_type == GAMEMODE_GDCLOGO || game_type == GAMEMODE_GDCLOGO + 1) )
-	{
-		base_color_a[ ap ] -= 20;
-		if( base_color_a[ ap ] <= 0 )
-		{
-			TASK_end( ap );
-			return;
-		}
-	} 
+  
 }
-function GAME_gdc_logo_start()
+function GAME_test_blue_square_start()
 {
-	let ap;
-	ap = TASK_start_GRP( GAME_gdc_logo_exec, 4, TEXTURE_GDCLOGO, uv1280, 0, "GDCロゴ表示" );
+    let ap;
+    ap = TASK_start_GRP( GAME_test_blue_square_exec, 100, TEXTURE_TEST_BLUE, test_red_rect, 0, "青いいグラフィックを" );
+    pos_x[ ap ] = ( WINDOW_WIDTH / 2 ) * WP;
+	pos_y[ ap ] = ( WINDOW_HEIGHT / 2 ) * WP;
+	pos_p[ ap ] = 200 * WP;
+    base_color_a[ ap ] = 255 / 2;
+}
+
+
+
+
+
+//---------------------------------------------------------
+// デバッグモードへ移動させる
+//---------------------------------------------------------
+function GAME_jump_debug_mode_exec( ap )
+{
+    work3[ ap ]--;
+    if( 1 == mouse_click )              // タッチされた！
+    {    
+        work3[ ap ] = work2[ ap ];
+        work1[ ap ]++;
+    }
+    
+    if( work3[ ap ] < 0 )               // 一定時間経過したら連打判定にはならない
+        work1[ ap ] = 0;
+        
+    if( work4[ ap ] <= work1[ ap ] )    // 指定した回数連打されたら
+    {    
+        GAME_test_blue_square_start();
+        game_type = GAMEMODE_DEBUG;
+        console.log( "jump" );
+        TASK_end( ap );
+        return;
+    }
+}
+function GAME_jump_debug_mode()
+{
+    let ap;
+    ap = TASK_start( GAME_jump_debug_mode_exec, 100, "デバッグモードへ移動させる" );
+    task_id[ ap ] = TASK_PROGRAM;
+    work1[ ap ] = 0;                // タッチ数をカウントする
+    work2[ ap ] = 10;               // 連打判定に用いる
+    work3[ ap ] = 0;                // タッチされてから次にタッチされるまでの時間をカウントする
+    work4[ ap ] = 5;                // 何度連打されたらデバッグモードへ移動させるか 
+}
+
+
+
+
+
+
+//---------------------------------------------------------
+// 試しに赤いグラフィックを
+//---------------------------------------------------------
+function GAME_test_red_square_exec( ap )
+{
+    if( mouse_click < 1 )
+        base_color_a[ ap ] = 0;
+    else
+        base_color_a[ ap ] = 255;
+}
+function GAME_test_red_square_start()
+{
+    let ap;
+    ap = TASK_start_GRP( GAME_test_red_square_exec, 0, TEXTURE_TEST_RED, test_red_rect, 0, "試しに赤いグラフィックを" );
 	pos_x[ ap ] = ( WINDOW_WIDTH / 2 ) * WP;
 	pos_y[ ap ] = ( WINDOW_HEIGHT / 2 ) * WP;
-	pos_p[ ap ] = 100000 * WP;
+	pos_p[ ap ] = 100 * WP;
 }
+
+
+
+
+//---------------------------------------------------------
+//  タッチしている座標に四角を表示する
+//---------------------------------------------------------
+function GAME_test_touch_pos_exec( ap )
+{
+    pos_x[ ap ] = mouse_x * WP;
+    pos_y[ ap ] = mouse_y * WP;
+}
+function GAME_test_touch_pos_start()
+{
+    let ap;
+    ap = TASK_start_GRP( GAME_test_touch_pos_exec, 0, TEXTURE_FADE_WHITE, fade_parts, 0, "タッチしている座標" );
+    pos_x[ ap ] = mouse_x * WP;
+	pos_y[ ap ] = mouse_y * WP;
+    scale_x[ ap ] = 10 * WP;
+	scale_y[ ap ] = 10 * WP;
+    pos_p[ ap ] = 100000 * WP;
+}
+
+
+
+
+
+
+//--------------------------------------------------------------------------------------
+//    歩数を表示する
+//--------------------------------------------------------------------------------------
+function GAME_step_number_exec( ap )
+{
+    str[ ap ] = String( _step );
+}
+function GAME_step_number_start()
+{
+    let ap;
+    ap = TASK_start_FONT( GAME_step_number_exec, 0, "", 0, 100 );
+    pos_x[ ap ] = WINDOW_WIDTH / 2 * WP;
+    pos_y[ ap ] = WINDOW_HEIGHT / 2 * WP;
+    pos_p[ ap ] = 200 * WP;
+    str[ ap ] = String( _step );
+}
+
+
 
 
 
@@ -345,10 +459,9 @@ function GAME_main_routine()
 		Visualize_CollisionDetection();
 
 	click_object = -1;
-	if( SOZ_Mouse_Button( 0 ) != 0 && ( game_type == GAMEMODE_TITLE || game_type == GAMEMODE_GAME + 1 ) )
+	if( SOZ_Mouse_Button( 0 ) != 0 && game_type == GAMEMODE_GAME + 1 )
 	{
 		click_object = CLICK_click_obj( mouse_x, mouse_y);
-		console.log( mouse_x +"  "+ mouse_y );
 	}
 
 	switch( game_type )
@@ -361,74 +474,23 @@ function GAME_main_routine()
 			TASK_all_init( );							//タスクの全消去
 			GAME_system_grp_load();						//一番最初にロードすべきもの	
 //			SAVEDATA_gameload_1st();					//一番最初のセーブデータ読み込み
-			game_type = GAMEMODE_GDCLOGO;
+			game_type = GAMEMODE_GAME;
 
-			break;
-
-
-		//GDCロゴ
-		case GAMEMODE_GDCLOGO: 									//ゲーム著作表示（GDC)
-			GAME_gdc_logo_start();				//ロゴ表示
-			gt_counter = 0;
-			game_type++;
-			break;
-
-		case GAMEMODE_GDCLOGO + 1:								//特定時間過ぎたら
-			gt_counter++;
-			if( gt_counter >= 90 )
-			{
-				ROOM_1st_start();
-				TITLE_start();
-				MUSIC_Start( 1, 1 );
-				gt_counter = 0;
-				game_type = GAMEMODE_TITLE;
-			}
-			break;
-
-
-
-		//タイトル
-		case GAMEMODE_TITLE:
-			if( SOZ_Mouse_Button( 0 ) != 0 )
-			{
-				gt_counter = 0;
-				gt_loop = 0;
-				game_type = GAMEMODE_OPENING;				
-				game_type = GAMEMODE_GAME;				
-			}
-			break;
-
-
-		//オープニング
-		case GAMEMODE_OPENING:
-			if( gt_counter == 0 )
-				OPENING_grp_out( gt_loop );					//画像発生
-
-			gt_counter++;
-			if( gt_counter >= 180 )							
-			{
-				if( SOZ_Mouse_Button( 0 ) == 0 )
-				{
-					gt_counter = 0;
-					gt_loop++;
-					if( gt_loop >= 3 )
-						game_type = GAMEMODE_GAME;
-				}
-			}
 			break;
 
 
 		//ゲーム本体
 		case GAMEMODE_GAME:											//ゲームに行く前の準備
-			PLAYER_gomashio_idling_start();
-			//PLAYER_gomashio_start();
+			GAME_test_red_square_start();
+            GAME_test_touch_pos_start();
+            GAME_step_number_start();
 			game_type++;
 			break;
 
 		case GAMEMODE_GAME + 1:											//ゲームに行く前の準備
-			break;
-
-
+			GAME_jump_debug_mode();
+            game_type++;
+            break;
 	}
 
 	GetKey_Routine();
@@ -444,6 +506,39 @@ function GAME_main_routine()
 		mouse_click_time = 0;
 	}
 }
+
+
+
+
+
+
+
+
+
+
+function onDeviceMotion(e) 
+{
+    e.preventDefault();
+    // 重力加速度を取得
+    var ag = e.accelerationIncludingGravity;
+    // 重力加速度ベクトルの大きさを取得
+    var acc = Math.sqrt(ag.x*ag.x + ag.y*ag.y + ag.z*ag.z);
+    // 
+    if (_isStep) {
+        // 歩行中にしきい値よりも低ければ一歩とみなす
+        if (acc < GRAVITY_MIN) {
+            _step++;
+            _isStep = false;
+        }
+    } else {
+        // しきい値よりも大きければ歩いているとみなす
+        if (acc > GRAVITY_MAX) {
+            _isStep = true;
+        }
+    }
+}
+
+
 
 
 
@@ -467,26 +562,13 @@ function newGame()
 	console.log( "解像度幅 = " + SOZ_buffer_x );
 	console.log( "解像度高 = " + SOZ_buffer_y );
     
-
-//  	if( ua.indexOf('Android') != -1 )
-  	if( 1 )
-    {        
-
-		SOZ_screen_scale = SOZ_buffer_x / WINDOW_WIDTH;
-		SOZ_screen_scale_parsent = ( SOZ_screen_scale * 100 ) + "%";
-        rootElement.style.zoom = SOZ_screen_scale_parsent;
-		console.log( "scale = " + SOZ_screen_scale_parsent );
-
-	}
-	else
-	{
-		SOZ_screen_scale = 1.0;
-		SOZ_screen_scale_parsent = ( SOZ_screen_scale * 100 ) + "%";
-	}    
-
+    SOZ_screen_scale = 1.0;
+	SOZ_screen_scale_parsent = ( SOZ_screen_scale * 100 ) + "%";
+	
 	document.addEventListener(EVENTNAME_TOUCHSTART, SOZ_Mouse_Get );
 	document.addEventListener(EVENTNAME_TOUCHMOVE, SOZ_Mouse_Move );
 	document.addEventListener(EVENTNAME_TOUCHEND, SOZ_Mouse_Release );
+    window.addEventListener('devicemotion', onDeviceMotion);
 	GAME_memory_get_routine();
 	clearInterval( interval );						// ゲームタイマーをクリア
 

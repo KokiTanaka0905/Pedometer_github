@@ -12,7 +12,7 @@ let EVENTNAME_TOUCHMOVE = supportTouch ? 'touchmove' : 'mousemove';
 let EVENTNAME_TOUCHEND = supportTouch ? 'touchend' : 'mouseup';
 
 
-let touch_zoom = 1 / document.body.style.zoom;
+let touch_zoom = 1;
 let mouse_x, mouse_y;
 let mouse_x_last, mouse_y_last, mouse_click = 0, mouse_click_time = 0;
 
@@ -255,17 +255,14 @@ function GetKey_Routine()
 //--------------------------------------------------------------------------------------
 function SOZ_Mouse_Get( event )
 {		
-	touch_zoom = 1 / document.body.style.zoom;
-//	touch_zoom *= SOZ_screen_scale;
-
 	//マウス（タッチ）の情報を作る
     rect = event.target.getBoundingClientRect();
 
     if( event.changedTouches )
     {
 		//スマホ、タブレットなど
-	    mouse_x = ( event.targetTouches[0].pageX - rect.left ) * touch_zoom;
-	    mouse_y = ( event.targetTouches[0].pageY - rect.top ) * touch_zoom;
+	    mouse_x = ( event.targetTouches[0].pageX - rect.left );
+	    mouse_y = ( event.targetTouches[0].pageY - rect.top );
 	}
     else
     {
@@ -290,8 +287,8 @@ function SOZ_Mouse_Move( event )
 	    if( event.changedTouches )
 	    {
 			//スマホ、タブレットなど
-		    mouse_x = ( event.targetTouches[0].pageX - rect.left ) * touch_zoom;
-		    mouse_y = ( event.targetTouches[0].pageY - rect.top ) * touch_zoom;
+		    mouse_x = ( event.targetTouches[0].pageX - rect.left );
+		    mouse_y = ( event.targetTouches[0].pageY - rect.top );
 	    }
 	    else
 	    {

@@ -33,6 +33,7 @@
   <preference name="UIWebViewDecelerationSpeed" value="normal"/>
   <preference name="ios-XCBuildConfiguration-TARGETED_DEVICE_FAMILY" value="1,2"/>
   <platform name="ios">
+    <preference name="portrait" value="all"/>
     <icon src="/res/ios/icon/icon.png" width="57" height="57"/>
     <icon src="/res/ios/icon/icon@2x.png" width="114" height="114"/>
     <icon src="/res/ios/icon/icon-72.png" width="72" height="72"/>
@@ -90,6 +91,7 @@
   <platform name="chrome">
     <icon src="/platforms/chrome/icon.png" width="128" height="128"/>
   </platform>
+  
   <preference name="WindowsStorePublisherName" value="My Name"/>
   <preference name="WindowsStoreIdentityName" value="852c24fb-c0b1-c925-bac6-e422aa99b84d"/>
   <access origin="*"/>
@@ -99,4 +101,5 @@
   <preference name="Orientation" value="landscape"/>
   <preference name="SplashScreenDelay" value="1000"/>
   <preference name="Fullscreen" value="false"/>
+  
 </widget>
