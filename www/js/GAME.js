@@ -64,6 +64,7 @@ const GRAVITY_MIN = 9.8;
 const GRAVITY_MAX = 12.00;
 // 歩数
 let _step = 0;
+let _step_backup = 0;
 // 現在歩いているかどうか
 let _isStep = false;
 
@@ -259,10 +260,10 @@ function GAME_test_blue_square_exec( ap )
 function GAME_test_blue_square_start()
 {
     let ap;
-    ap = TASK_start_GRP( GAME_test_blue_square_exec, 100, TEXTURE_TEST_BLUE, test_red_rect, 0, "青いいグラフィックを" );
+    ap = TASK_start_GRP( GAME_test_blue_square_exec, 120, TEXTURE_TEST_BLUE, test_red_rect, 0, "青いいグラフィックを" );
     pos_x[ ap ] = ( WINDOW_WIDTH / 2 ) * WP;
 	pos_y[ ap ] = ( WINDOW_HEIGHT / 2 ) * WP;
-	pos_p[ ap ] = 200 * WP;
+	pos_p[ ap ] = 300 * WP;
     base_color_a[ ap ] = 255 / 2;
 }
 
@@ -276,20 +277,24 @@ function GAME_test_blue_square_start()
 function GAME_jump_debug_mode_exec( ap )
 {
     work3[ ap ]--;
-    if( 1 == mouse_click )              // タッチされた！
+    if( 1 == mouse_click && work5[ ap ] == 0 )  // タッチされた！
     {    
         work3[ ap ] = work2[ ap ];
+        work5[ ap ] = 1;                        // 長押しで連打判定を取らないように
         work1[ ap ]++;
     }
     
-    if( work3[ ap ] < 0 )               // 一定時間経過したら連打判定にはならない
+    if( mouse_click == -1 )
+        work5[ ap ] = 0;
+    
+    if( work3[ ap ] < 0 )                       // 一定時間経過したら連打判定にはならない
         work1[ ap ] = 0;
         
-    if( work4[ ap ] <= work1[ ap ] )    // 指定した回数連打されたら
+    if( work4[ ap ] <= work1[ ap ] )            // 指定した回数連打されたら
     {    
         GAME_test_blue_square_start();
         game_type = GAMEMODE_DEBUG;
-        console.log( "jump" );
+        console.log( "jump to GAMEMODE_DEBUG" );
         TASK_end( ap );
         return;
     }
@@ -297,12 +302,59 @@ function GAME_jump_debug_mode_exec( ap )
 function GAME_jump_debug_mode()
 {
     let ap;
-    ap = TASK_start( GAME_jump_debug_mode_exec, 100, "デバッグモードへ移動させる" );
+    ap = TASK_start( GAME_jump_debug_mode_exec, 0, "デバッグモードへ移動させる" );
     task_id[ ap ] = TASK_PROGRAM;
     work1[ ap ] = 0;                // タッチ数をカウントする
     work2[ ap ] = 10;               // 連打判定に用いる
     work3[ ap ] = 0;                // タッチされてから次にタッチされるまでの時間をカウントする
-    work4[ ap ] = 5;                // 何度連打されたらデバッグモードへ移動させるか 
+    work4[ ap ] = 5;                // 何度連打されたらデバッグモードへ移動させるか
+    work5[ ap ] = 0;                // 一度指が離されたかどうか判断する
+}
+
+
+
+
+
+
+
+//---------------------------------------------------------
+// 通常モードに移動させる
+//---------------------------------------------------------
+function GAME_jump_game_mode_exec( ap )
+{
+    work3[ ap ]--;
+    if( 1 == mouse_click && work5[ ap ] == 0 )  // タッチされた！
+    {    
+        work3[ ap ] = work2[ ap ];
+        work5[ ap ] = 1;                        // 長押しで連打判定を取らないように
+        work1[ ap ]++;
+    }
+    
+    if( mouse_click == -1 )
+        work5[ ap ] = 0;
+    
+    if( work3[ ap ] < 0 )                       // 一定時間経過したら連打判定にはならない
+        work1[ ap ] = 0;
+        
+    if( work4[ ap ] <= work1[ ap ] )            // 指定した回数連打されたら
+    {    
+        game_type = GAMEMODE_GAME;
+        console.log( "jump to GAMEMODE_GAME" );
+        TASK_end_group( 120 );                  // デバッグ情報を全削除
+        TASK_end( ap );
+        return;
+    }
+}
+function GAME_jump_game_mode()
+{
+    let ap;
+    ap = TASK_start( GAME_jump_game_mode_exec, 0, "デバッグモードへ移動させる" );
+    task_id[ ap ] = TASK_PROGRAM;
+    work1[ ap ] = 0;                // タッチ数をカウントする
+    work2[ ap ] = 10;               // 連打判定に用いる
+    work3[ ap ] = 0;                // タッチされてから次にタッチされるまでの時間をカウントする
+    work4[ ap ] = 5;                // 何度連打されたらデバッグモードへ移動させるか
+    work5[ ap ] = 0;                // 一度指が離されたかどうか判断する
 }
 
 
@@ -367,13 +419,278 @@ function GAME_step_number_start()
 {
     let ap;
     ap = TASK_start_FONT( GAME_step_number_exec, 0, "", 0, 100 );
-    pos_x[ ap ] = WINDOW_WIDTH / 2 * WP;
+    pos_x[ ap ] = 10 * WP;
     pos_y[ ap ] = WINDOW_HEIGHT / 2 * WP;
     pos_p[ ap ] = 200 * WP;
     str[ ap ] = String( _step );
 }
 
 
+
+
+
+//--------------------------------------------------------------------------------------
+//    歩数を増やしたり減らしたりする
+//--------------------------------------------------------------------------------------
+function GAME_step_number_controler_exec( ap )
+{
+    if( 1 == mouse_click )                      // タッチされていたら
+        work3[ ap ]++;
+    else    
+    {   
+       work2[ ap ] = 0;                         // 遷移を戻す
+       work3[ ap ] = 0;                         // 長押しされたフレーム数のカウンターをリセット
+    }
+    
+    switch( work2[ ap ] )
+    {
+        case 0:
+            if( work1[ ap ] <= work3[ ap ] )    // 指定した時間数以上経過していたら
+                work2[ ap ]++;                  // 次の遷移へ
+            break;
+            
+        case 1:
+            if( WINDOW_WIDTH / 2 < mouse_x )    // タッチされているのが半分よりも右側であった場合
+                _step++;
+                
+            if( WINDOW_WIDTH / 2 > mouse_x )    // タッチされているのが半分よりも左側であった場合
+                _step--;
+            
+            if( _step < 0 )                     // ０よりも小さい値にはさせない
+                _step = 0;
+            break;
+    }
+}
+function GAME_step_number_controler_start()
+{
+    let ap;
+    ap = TASK_start( GAME_step_number_controler_exec, 120, "歩数を増やしたり減らしたりする" );
+    task_id[ ap ] = TASK_PROGRAM;
+    work1[ ap ] = 60;   // 何秒以上押したら歩数を制御できるか
+    work2[ ap ] = 0;    // タスクの遷移状態
+    work3[ ap ] = 0;    // 長押しされている間のフレーム数をカウントする
+}
+
+
+
+
+//--------------------------------------------------------------------------------------
+//    現在の時刻を表示
+//--------------------------------------------------------------------------------------
+function GAME_time_output_exec( ap )
+{
+    let dt = new Date();
+    str[ ap ] = String( dt );
+}
+function GAME_time_output_start()
+{
+    let ap;
+    let dt = new Date();
+    ap = TASK_start_FONT( GAME_time_output_exec, 120, "", 0, 10 );
+    pos_x[ ap ] = 10 * WP;
+    pos_y[ ap ] = ( WINDOW_HEIGHT - 10 ) * WP;
+    pos_p[ ap ] = 100000 * WP;
+    str[ ap ] = String( dt );
+} 
+
+
+
+
+//--------------------------------------------------------------------------------------
+//    最後にアプリケーションを起動した時刻を表示
+//--------------------------------------------------------------------------------------
+function GAME_last_boot_time_output_exec( ap )
+{
+    str[ ap ] = String( new Date( last_boot_time ) );
+}
+function GAME_last_boot_time_output_start()
+{
+    let ap;
+    ap = TASK_start_FONT( GAME_last_boot_time_output_exec, 120, "", 0, 10 );
+    pos_x[ ap ] = 10 * WP;
+    pos_y[ ap ] = ( WINDOW_HEIGHT - 25 ) * WP;
+    pos_p[ ap ] = 100000 * WP;
+    str[ ap ] = String( last_boot_time );
+}
+
+
+
+//--------------------------------------------------------------------------------------
+//    今までの歩数が表示される
+//--------------------------------------------------------------------------------------
+function GAME_all_step_number_output_exec( ap )
+{
+    
+}
+function GAME_all_step_number_output_start()
+{
+    let ap;
+    let i;
+    let j;
+    
+    for( j = 0; j < 12; j ++ )
+    {
+        ap = TASK_start_FONT( GAME_all_step_number_output_exec, 120, "", 0, 10 );
+        pos_x[ ap ] = 10 * WP;
+        pos_y[ ap ] = 10 * WP + 15 * j * WP;
+        pos_p[ ap ] = 100000 * WP;
+        work1[ ap ] = j * 10;
+        
+        for( i = 0; i < 10; i++ )
+        {
+            str[ ap ] += String( step_number_table[ i + work1[ ap ] ] );
+            str[ ap ] += " ";
+        }
+    }
+}
+
+
+
+
+//--------------------------------------------------------------------------------------
+//    データの削除
+//--------------------------------------------------------------------------------------
+function GAME_data_clear_controler_exec( ap )
+{
+    switch( work10[ ap ] )
+    {
+        case 0:
+            work3[ ap ]--;
+            if( 1 == mouse_click && work5[ ap ] == 0 )  // タッチされた！
+            {    
+                work3[ ap ] = work2[ ap ];
+                work5[ ap ] = 1;                        // 長押しで連打判定を取らないように
+                work1[ ap ]++;
+            }
+            
+            if( mouse_click == -1 )
+                work5[ ap ] = 0;
+            
+            if( work3[ ap ] < 0 )                       // 一定時間経過したら連打判定にはならない
+                work1[ ap ] = 0;
+    
+            if( work4[ ap ] <= work1[ ap ] )
+            {    
+                task_id[ ap ] = TASK_FONT;
+                work10[ ap ]++;                         // 次の遷移へ
+            }
+            break;
+            
+        case 1:
+            if( 1 == mouse_click )
+                work7[ ap ]++;
+            else
+            {
+                work12[ ap ]++;
+                if( work11[ ap ] <= work12[ ap ] )      // 一定時間無操作状態が続いた
+                    work10[ ap ] = 10;                  // メンバの初期化処理に遷移
+                
+                if( work7[ ap ] != 0 )                  // 長押しせずに指が離された
+                    work10[ ap ] = 10;                  // メンバの初期化に遷移
+            }
+            
+            if( work6[ ap ] <= work7[ ap ] )            // 長押しされた
+            {
+                SAVEDATA_gameclear();
+                str[ ap ] = "data erasing......";
+                task_id[ ap ] = TASK_FONT;
+                work10[ ap ]++;
+            }
+            break;
+            
+        case 2:
+            work8[ ap ]++;
+            if( work9[ ap ] <= work8[ ap ] )        // 指定したフレーム数経過したら
+                work10[ ap ] = 10;                  // メンバの初期化ルーチンへ
+            break;
+            
+        case 10:
+            str[ ap ] = "preparation in data erasing progress";
+            
+            // case 0 で利用するメンバの初期化
+            work1[ ap ] = 0;                // タッチ数をカウントする
+            work3[ ap ] = 0;                // タッチされてから次にタッチされるまでの時間をカウントする
+            work5[ ap ] = 0;                // 一度指が離されたかどうか判断する
+            
+            // case 1 で利用するメンバの初期化
+            work7[ ap ] = 0;                // 長押しされたフレーム数をカウント  
+            work12[ ap ] = 0;               // タッチされていないフレーム数カウンター
+            
+            // case 2 で利用するメンバの初期化
+            work8[ ap ] = 0;    
+        
+            work10[ ap ] = 0;               // 遷移を初めに戻す
+            task_id[ ap ] = TASK_PROGRAM;   // 不可視にする
+            break;
+    }
+}
+function GAME_data_clear_controler_start()
+{
+    let ap;
+    ap = TASK_start( GAME_data_clear_controler_exec, 120, "データの削除"  );
+    task_id[ ap ] = TASK_PROGRAM;
+    pos_x[ ap ] = 10 * WP;
+    pos_y[ ap ] = WINDOW_HEIGHT / 2 * WP;
+    pos_p[ ap ] = 100000 * WP;
+    str[ ap ] = "preparation in data erasing progress";
+    
+    // case 0 で利用するメンバ
+    work1[ ap ] = 0;                // タッチ数をカウントする
+    work2[ ap ] = 10;               // 連打判定に用いる
+    work3[ ap ] = 0;                // タッチされてから次にタッチされるまでの時間をカウントする
+    work4[ ap ] = 3;                // 何度連打されたらデバッグモードへ移動させるか
+    work5[ ap ] = 0;                // 一度指が離されたかどうか判断する
+    
+    // case 1 で利用するメンバ
+    work6[ ap ] = 30;               // 遷移後何フレーム押せばデータが削除されるか
+    work7[ ap ] = 0;                // 長押しされたフレーム数をカウント
+    work11[ ap ] = 60;              // ここで指定されたフレーム分経過したら自動的に初期化処理へ飛ばさせる
+    work12[ ap ] = 0;               // タッチされていないフレーム数カウンター
+    
+    // case 2 で使用するメンバ
+    work8[ ap ] = 0;                // 文字を表示しているフレーム数カウンター
+    work9[ ap ] = 30;               // 文字を表示するフレーム数
+    
+    work10[ ap ] = 0;               // タスクの遷移状態 
+} 
+
+
+
+
+
+
+//--------------------------------------------------------------------------------------
+//    歩数の保存処理
+//--------------------------------------------------------------------------------------
+function GAME_step_number_save()
+{
+    if( _step != _step_backup )
+    {
+        step_number_table[ 0 ] = _step;
+        SAVEDATA_gamesave();
+        _step_backup = _step;
+    }
+}
+
+
+
+
+//--------------------------------------------------------------------------------------
+//    日付の差分日数を返却する
+//--------------------------------------------------------------------------------------
+function getDiff(date1Str, date2Str) 
+{
+    var date1 = new Date(date1Str);
+	var date2 = new Date(date2Str);
+ 
+	// getTimeメソッドで経過ミリ秒を取得し、２つの日付の差を求める
+    var msDiff = date2.getTime() - date1.getTime();
+ 
+	// 求めた差分（ミリ秒）を日付へ変換します（経過ミリ秒÷(1000ミリ秒×60秒×60分×24時間)。端数切り捨て）
+	var daysDiff = Math.floor(msDiff / (1000 * 60 * 60 *24));
+ 
+    return daysDiff;
+}
 
 
 
@@ -449,6 +766,7 @@ let debug_counter = 0;
 
 function GAME_main_routine() 
 {
+    let i;      // ループ用カウンタ
     SE_exec();
 	
 	// SHIFT を押しながら H で当たり判定の表示切替
@@ -470,29 +788,54 @@ function GAME_main_routine()
 		case GAMEMODE_INIT:
 			ctx.font = "16px 'メイリオ ボールド'";
 
+            // 後々関数化
+            for( i = 0; i < 120; i++ )
+                step_number_table[ i ] = 0;
+            game_data_table[ 0 ] = 999;                 // とりあえず適当な値を入れておく
+            last_boot_time = new Date();
+            
 			SE_load();									//効果音の読み込み
 			TASK_all_init( );							//タスクの全消去
 			GAME_system_grp_load();						//一番最初にロードすべきもの	
-//			SAVEDATA_gameload_1st();					//一番最初のセーブデータ読み込み
-			game_type = GAMEMODE_GAME;
-
-			break;
+			SAVEDATA_gameload_1st();					//一番最初のセーブデータ読み込み
+            SAVEDATA_gamesave();
+            game_type = GAMEMODE_GAME;
+    		
+            console.log( "最後に起動してから経過した日数 " + getDiff( new Date( last_boot_time ), new Date() ) );
+            
+            //後々関数化
+            _step = step_number_table[ 0 ];
+            _step_backup = _step;
+            break;
 
 
 		//ゲーム本体
 		case GAMEMODE_GAME:											//ゲームに行く前の準備
-			GAME_test_red_square_start();
+            GAME_test_red_square_start();
             GAME_test_touch_pos_start();
             GAME_step_number_start();
-			game_type++;
+            game_type++;
 			break;
 
 		case GAMEMODE_GAME + 1:											//ゲームに行く前の準備
 			GAME_jump_debug_mode();
             game_type++;
             break;
+            
+        // デバッグモード
+        case GAMEMODE_DEBUG:
+            GAME_step_number_controler_start();                         // 歩数を制御
+            GAME_time_output_start();                                   // 現在の時刻を表示
+            GAME_last_boot_time_output_start();                         // 最後に起動した時刻を表示
+            GAME_data_clear_controler_start();                          // データ消去制御
+            GAME_all_step_number_output_start();                        // 過去の歩数を表示
+            
+            GAME_jump_game_mode();
+            game_type++;
+            break;
 	}
 
+    GAME_step_number_save();
 	GetKey_Routine();
 
 	if( mouse_click == 1 )
