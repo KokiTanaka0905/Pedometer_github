@@ -1,6 +1,6 @@
 //--------------------------------------------------------------------------------------
 //
-//	GDC提供：サマーキャンプレースゲーム
+//    GDC提供：サマーキャンプレースゲーム
 //
 //						BLAZING TRAIL (ブレイジングトレイル）
 //
@@ -33,6 +33,7 @@ const TEXTURE_FADE_WHITE	= 11;
 
 const TEXTURE_TEST_RED      = 12;
 const TEXTURE_TEST_BLUE     = 13;
+const TEXTURE_STEP_FONT     = 14;
 
 const TEXTURE_LINE			= 98;
 const TEXTURE_PLANE			= 99;			//ちょっと荒いけど利用させてもらう
@@ -41,6 +42,7 @@ const TEXTURE_OPEN1			= 100;			//オープニング（汎用だけど最初に�
 const TEXTURE_OPEN2			= 101;
 const TEXTURE_OPEN3			= 102;
 const TEXTURE_OPENMES		= 103;
+
 
 
 
@@ -68,15 +70,26 @@ let _step_backup = 0;
 // 現在歩いているかどうか
 let _isStep = false;
 
+let how_many_day;
+
+const term1_list = [ 0x11, 0x21 ];
+const term2_list = 
+[ 
+    [ 0x111, 0x211 ],
+    [ 0x121, 0x221 ]
+];
+
+
+
 
 
 
 //--------------------------------------------------------------------------------------
 //矩形データ
 //--------------------------------------------------------------------------------------
-const uv1280=
+const uv512_512_rect =
 [
-	[ 0, 0, 1280, 720, 1280 / 2, 720 / 2 ],
+	[ 0 + 1, 0 + 1, 512 - 2, 512 - 2, ( 512 - 2 ) / 2, ( 512 - 2 ) / 2 ],
 ];
 
 const hit_check_rect =
@@ -88,6 +101,22 @@ const test_red_rect =
 [
     [ 0, 0, 640, 1136, 640 / 2, 1136 / 2 ],
 ];
+
+const step_number_font_rect =
+[
+    [ 50 * 0 + 1, 50 * 0 + 1, 50 - 2, 50 - 2, ( 50 - 2 ) / 2, ( 50 - 2 ) / 2 ],
+    [ 50 * 1 + 1, 50 * 0 + 1, 50 - 2, 50 - 2, ( 50 - 2 ) / 2, ( 50 - 2 ) / 2 ],
+    [ 50 * 2 + 1, 50 * 0 + 1, 50 - 2, 50 - 2, ( 50 - 2 ) / 2, ( 50 - 2 ) / 2 ],
+    [ 50 * 3 + 1, 50 * 0 + 1, 50 - 2, 50 - 2, ( 50 - 2 ) / 2, ( 50 - 2 ) / 2 ],
+    [ 50 * 4 + 1, 50 * 0 + 1, 50 - 2, 50 - 2, ( 50 - 2 ) / 2, ( 50 - 2 ) / 2 ],
+    
+    [ 50 * 0 + 1, 50 * 1 + 1, 50 - 2, 50 - 2, ( 50 - 2 ) / 2, ( 50 - 2 ) / 2 ],
+    [ 50 * 1 + 1, 50 * 1 + 1, 50 - 2, 50 - 2, ( 50 - 2 ) / 2, ( 50 - 2 ) / 2 ],
+    [ 50 * 2 + 1, 50 * 1 + 1, 50 - 2, 50 - 2, ( 50 - 2 ) / 2, ( 50 - 2 ) / 2 ],
+    [ 50 * 3 + 1, 50 * 1 + 1, 50 - 2, 50 - 2, ( 50 - 2 ) / 2, ( 50 - 2 ) / 2 ],
+    [ 50 * 4 + 1, 50 * 1 + 1, 50 - 2, 50 - 2, ( 50 - 2 ) / 2, ( 50 - 2 ) / 2 ],
+];
+
 
 
 
@@ -143,108 +172,91 @@ function GAME_system_grp_load( )
 	SOZ_Texture_Load( TEXTURE_LINE			, "grp/line_0.png" );
 
     SOZ_Texture_Load( TEXTURE_TEST_RED    	, "grp/test.png" );
-    SOZ_Texture_Load( TEXTURE_TEST_BLUE     , "grp/test2.png" );   
-
+    SOZ_Texture_Load( TEXTURE_TEST_BLUE     , "grp/test2.png" );
+    SOZ_Texture_Load( TEXTURE_STEP_FONT     , "grp/font.png" );
+    
 	SOZ_Texture_Load( TEXTURE_OPEN1			, "grp/open1.png" );
 	SOZ_Texture_Load( TEXTURE_OPEN2			, "grp/open2.png" );
 	SOZ_Texture_Load( TEXTURE_OPEN3			, "grp/open3.png" );
 	SOZ_Texture_Load( TEXTURE_OPENMES		, "grp/openmes.png" );
 
-
-
+    SOZ_Texture_Load( 150 + 0, "grp/001.png" );
+    SOZ_Texture_Load( 155 + 0, "grp/011.png" );    
+    SOZ_Texture_Load( 165 + 0, "grp/111.png" );
 }
 
 
 
 
 
-
 //---------------------------------------------------------
-// タイトル文字（動くタイプ）
+//  何期なのか判別する関数  
 //---------------------------------------------------------
-function GAME_title_moji_demo( ap )
+function term_discriminator( id )
 {
-	switch( work1[ ap ] )
-	{
-		case 0:					//縮小
-			scale_x[ ap ] -= WP / 25;
-			scale_y[ ap ] = scale_x[ ap ];
+    let t = 2;  // 2期
+    let mask = 0xf00;
+    
+    if( ( mask & id ) == 0 )
+        t = 1;  // 1期
+    else
+        return t;
 
-			work2[ ap ]++;
-			work2[ ap ] %= 2;
-			if( work2[ ap ] == 0)
-				MENU_title_ill_start( ap );
-
-			if( scale_y[ ap ] <= WP )
-			{
-				scale_x[ ap ] = WP;
-				scale_y[ ap ] = WP;
-				work1[ ap ]++;
-			}
-			break;
-	}
+    mask = mask >> 4;
+    
+    if( ( mask & id ) == 0 )
+    {    
+        t = 0;
+        return t;
+    }
+    else
+        return t;
 }
 
 
 
 
 //---------------------------------------------------------
-//　ボタンを押せ、の点滅
+//  キャラクターのID（期間内での）を返す  
 //---------------------------------------------------------
-function GAME_taphere_exec( ap )
+function get_character_id_in_term( id, term )
 {
-	if( work9[ ap ] == 99999 )
-	{
-		work9[ ap ]  = 0;
-		game_type++;
-	}
-	
-	switch( work1[ ap ] )
-	{
-		case 0:
-			base_color_a[ ap ] -= 3;
-			if(base_color_a[ ap ] <= 90 )
-			{
-				work1[ ap ] = 1;
-			}
-			break;
-		case 1:
-			base_color_a[ ap ] += 3;
-			if(base_color_a[ ap ] >= 250 )
-			{
-				work1[ ap ] = 0;
-			}
-			break;
-	}
+    let mask = 0xf;
+    mask = mask << ( 4 * term );
+    id &= mask;
+    id = ( id >> ( 4 * term ) ) - 1;
+    return id; 
 }
 
 
 
-
 //---------------------------------------------------------
-// タイトル配置
+//  キャラクターを表示（動作が安定するまではフォントで表します） 
 //---------------------------------------------------------
-function GAME_title_start( )
+function GAME_character_exec( ap )
 {
-	let ap;
-
-	ap = TASK_start_GRP( GAME_title_moji_demo, 6, TEXTURE_TITLE, title_parts, 2, "タイトル" );
-	task_delay[ ap ] = 180 + 60;
-	pos_x[ ap ] = 0 * WP;
-	pos_y[ ap ] = 100 * WP;
-	pos_p[ ap ] = 10000 * WP;
-	scale_x[ ap ] = 3 * WP;
-	scale_y[ ap ] = scale_x[ ap ];
-	work1[ ap ] = 0;
-
-	ap = TASK_start_GRP( GAME_taphere_exec, 6, TEXTURE_TITLE, title_parts, 6, "TAP HERE" );
-	task_delay[ ap ] = 300;
-	pos_x[ ap ] = 156 * WP;
-	pos_y[ ap ] = 718 * WP;
-	pos_p[ ap ] = 45000 * WP;
-	work9[ ap ] = 99999;
-	work1[ ap ] = 0;
+    
 }
+function GAME_character_start()
+{
+    let i;
+    let ap;
+    let add = 0;
+    let tex = 150 + get_character_id_in_term( step_number_table[ how_many_day ][ 1 ], term_discriminator( step_number_table[ how_many_day ][ 1 ] ) ); 
+
+    for( i = term_discriminator( step_number_table[ how_many_day ][ 1 ] ) - 1; 0 <= i; i-- )
+        tex += 5 * ( 2 ** i );
+    
+    ap = TASK_start_GRP( GAME_character_exec, 0, tex, uv512_512_rect, 0, "キャラクター本体" );
+    
+    pos_x[ ap ] = WINDOW_WIDTH / 2 * WP;
+    pos_y[ ap ] = WINDOW_HEIGHT / 2 * WP;
+    pos_p[ ap ] = 200 * WP;
+    scale_x[ ap ] = WP / 2;
+    scale_y[ ap ] = scale_x[ ap ];
+    str[ ap ] = String( Number( step_number_table[ how_many_day ][ 1 ] ).toString( 16 ) );
+}
+
 
 
 
@@ -294,7 +306,6 @@ function GAME_jump_debug_mode_exec( ap )
     {    
         GAME_test_blue_square_start();
         game_type = GAMEMODE_DEBUG;
-        console.log( "jump to GAMEMODE_DEBUG" );
         TASK_end( ap );
         return;
     }
@@ -339,7 +350,6 @@ function GAME_jump_game_mode_exec( ap )
     if( work4[ ap ] <= work1[ ap ] )            // 指定した回数連打されたら
     {    
         game_type = GAMEMODE_GAME;
-        console.log( "jump to GAMEMODE_GAME" );
         TASK_end_group( 120 );                  // デバッグ情報を全削除
         TASK_end( ap );
         return;
@@ -407,25 +417,31 @@ function GAME_test_touch_pos_start()
 
 
 
-
 //--------------------------------------------------------------------------------------
 //    歩数を表示する
 //--------------------------------------------------------------------------------------
 function GAME_step_number_exec( ap )
 {
-    str[ ap ] = String( _step );
+    if( work1[ ap ] == 0 ) 
+        anime_no[ ap ] = step_number_table[ how_many_day ][ 0 ] % 10;
+    else
+        anime_no[ ap ] = Math.floor( step_number_table[ how_many_day ][ 0 ] / ( 10 ** work1[ ap ] ) ) % 10; 
 }
 function GAME_step_number_start()
 {
     let ap;
-    ap = TASK_start_FONT( GAME_step_number_exec, 0, "", 0, 100 );
-    pos_x[ ap ] = 10 * WP;
-    pos_y[ ap ] = WINDOW_HEIGHT / 2 * WP;
-    pos_p[ ap ] = 200 * WP;
-    str[ ap ] = String( _step );
+    let i;  // ループ用カウンタ
+    
+    for( i = 0; i < 5; i++ )
+    {
+        ap = TASK_start_GRP( GAME_step_number_exec, 0, TEXTURE_STEP_FONT, step_number_font_rect, 0, "歩数を表示する" );
+        pos_x[ ap ] = ( WINDOW_WIDTH - 50 * ( i + 1 ) - 30 ) * WP;
+        pos_y[ ap ] = WINDOW_HEIGHT / 4 * WP;
+        pos_p[ ap ] = 1000 * WP;
+        work1[ ap ] = i;
+        anime_no[ ap ] = 0;
+    }
 }
-
-
 
 
 
@@ -497,7 +513,7 @@ function GAME_time_output_start()
 
 
 //--------------------------------------------------------------------------------------
-//    最後にアプリケーションを起動した時刻を表示
+//    ゲームを最後に起動した時間を表示
 //--------------------------------------------------------------------------------------
 function GAME_last_boot_time_output_exec( ap )
 {
@@ -508,9 +524,30 @@ function GAME_last_boot_time_output_start()
     let ap;
     ap = TASK_start_FONT( GAME_last_boot_time_output_exec, 120, "", 0, 10 );
     pos_x[ ap ] = 10 * WP;
-    pos_y[ ap ] = ( WINDOW_HEIGHT - 25 ) * WP;
+    pos_y[ ap ] = ( WINDOW_HEIGHT - 25 - 0 ) * WP;
     pos_p[ ap ] = 100000 * WP;
     str[ ap ] = String( last_boot_time );
+}
+
+
+
+
+
+//--------------------------------------------------------------------------------------
+//    ゲームを開始した時刻を表示
+//--------------------------------------------------------------------------------------
+function GAME_recent_boot_time_output_exec( ap )
+{
+    str[ ap ] = String( new Date( recent_boot_time ) );
+}
+function GAME_recent_boot_time_output_start()
+{
+    let ap;
+    ap = TASK_start_FONT( GAME_recent_boot_time_output_exec, 120, "", 0, 10 );
+    pos_x[ ap ] = 10 * WP;
+    pos_y[ ap ] = ( WINDOW_HEIGHT - 25 - 15 ) * WP;
+    pos_p[ ap ] = 100000 * WP;
+    str[ ap ] = String( recent_boot_time );
 }
 
 
@@ -538,7 +575,10 @@ function GAME_all_step_number_output_start()
         
         for( i = 0; i < 10; i++ )
         {
-            str[ ap ] += String( step_number_table[ i + work1[ ap ] ] );
+            str[ ap ] += String( step_number_table[ i + work1[ ap ] ][ 0 ] );
+            str[ ap ] += "[";
+            str[ ap ] += String( Number( step_number_table[ i + work1[ ap ] ][ 1 ] ).toString( 16 ) ); 
+            str[ ap ] += "]";
             str[ ap ] += " ";
         }
     }
@@ -666,7 +706,8 @@ function GAME_step_number_save()
 {
     if( _step != _step_backup )
     {
-        step_number_table[ 0 ] = _step;
+        step_number_table[ how_many_day ][ 0 ] = _step; 
+        last_boot_time = new Date();
         SAVEDATA_gamesave();
         _step_backup = _step;
     }
@@ -691,6 +732,16 @@ function getDiff(date1Str, date2Str)
  
     return daysDiff;
 }
+
+
+
+
+
+
+//--------------------------------------------------------------------------------------
+//    進化判定関数
+//--------------------------------------------------------------------------------------
+
 
 
 
@@ -766,7 +817,7 @@ let debug_counter = 0;
 
 function GAME_main_routine() 
 {
-    let i;      // ループ用カウンタ
+    let i, j;      // ループ用カウンタ
     SE_exec();
 	
 	// SHIFT を押しながら H で当たり判定の表示切替
@@ -790,21 +841,51 @@ function GAME_main_routine()
 
             // 後々関数化
             for( i = 0; i < 120; i++ )
-                step_number_table[ i ] = 0;
+            {    
+                step_number_table[ i ] = new Array( 2 );
+                step_number_table[ i ][ 0 ] = 0;
+                step_number_table[ i ][ 1 ] = 0x000;
+            }
             game_data_table[ 0 ] = 999;                 // とりあえず適当な値を入れておく
+            recent_boot_time = new Date();                // 初期値　初回でなければ下のロード関連で上書きされる
             last_boot_time = new Date();
             
 			SE_load();									//効果音の読み込み
 			TASK_all_init( );							//タスクの全消去
 			GAME_system_grp_load();						//一番最初にロードすべきもの	
 			SAVEDATA_gameload_1st();					//一番最初のセーブデータ読み込み
-            SAVEDATA_gamesave();
             game_type = GAMEMODE_GAME;
     		
-            console.log( "最後に起動してから経過した日数 " + getDiff( new Date( last_boot_time ), new Date() ) );
+            console.log( "ゲームを始めてから経過した日数 " + getDiff( new Date( recent_boot_time ), new Date() ) );
+            console.log( "最後に起動してから経過した日数 " + getDiff( new Date( last_boot_time ), new Date() ) );    
+            how_many_day = getDiff( new Date( recent_boot_time ), new Date() );
+            
+            if( step_number_table[ how_many_day ][ 1 ] == 0 )
+            {
+                if( how_many_day == 0 )
+                    step_number_table[ how_many_day ][ 1 ] = 0x001;
+                else
+                {
+                    switch( term_discriminator( step_number_table[ how_many_day - 1 ][ 1 ] ) )
+                    {
+                        case 0:
+                            console.log( "term1" );
+                            step_number_table[ how_many_day ][ 1 ] = term1_list[ 0 ];
+                            break;
+                            
+                        case 1:
+                            console.log( "term2" );
+                            step_number_table[ how_many_day ][ 1 ] = term2_list[ 0 ][ 0 ];
+                            break;
+                    }
+                }
+            }
+            
+            SAVEDATA_gamesave();
             
             //後々関数化
-            _step = step_number_table[ 0 ];
+            last_boot_time = new Date();
+            _step = step_number_table[ how_many_day ][ 0 ];
             _step_backup = _step;
             break;
 
@@ -814,6 +895,7 @@ function GAME_main_routine()
             GAME_test_red_square_start();
             GAME_test_touch_pos_start();
             GAME_step_number_start();
+            GAME_character_start();
             game_type++;
 			break;
 
@@ -826,7 +908,8 @@ function GAME_main_routine()
         case GAMEMODE_DEBUG:
             GAME_step_number_controler_start();                         // 歩数を制御
             GAME_time_output_start();                                   // 現在の時刻を表示
-            GAME_last_boot_time_output_start();                         // 最後に起動した時刻を表示
+            GAME_recent_boot_time_output_start();                         // 最後に起動した時刻を表示
+            GAME_last_boot_time_output_start();
             GAME_data_clear_controler_start();                          // データ消去制御
             GAME_all_step_number_output_start();                        // 過去の歩数を表示
             
@@ -899,11 +982,11 @@ function newGame()
 	SOZ_buffer_x = window.screen.width * window.devicePixelRatio;
     SOZ_buffer_y = window.screen.height * window.devicePixelRatio;
 
-	console.log( "screen.width = " + screen.width );
-	console.log( "screen.height = " + screen.height );    
-	console.log( "window.devicePixelRatio = " + window.devicePixelRatio );
-	console.log( "解像度幅 = " + SOZ_buffer_x );
-	console.log( "解像度高 = " + SOZ_buffer_y );
+	//console.log( "screen.width = " + screen.width );
+	//console.log( "screen.height = " + screen.height );    
+	//console.log( "window.devicePixelRatio = " + window.devicePixelRatio );
+	//console.log( "解像度幅 = " + SOZ_buffer_x );
+	//console.log( "解像度高 = " + SOZ_buffer_y );
     
     SOZ_screen_scale = 1.0;
 	SOZ_screen_scale_parsent = ( SOZ_screen_scale * 100 ) + "%";
