@@ -1,18 +1,19 @@
 //--------------------------------------------------------------------------------------
 //
-//    GDC提供：サマーキャンプレースゲーム
+//    研修課題：歩数に伴ってキャラクターが進化する育成ゲーム
 //
-//						BLAZING TRAIL (ブレイジングトレイル）
+//    				    タイトルなし
 //
-//															Programed by R-TOHYA
+//															Programed by TANAKA
 //--------------------------------------------------------------------------------------
 
 
 
-//--------------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------- 
 //ゲームモード定義
 //--------------------------------------------------------------------------------------
 const GAMEMODE_INIT					= 0;
+const GAMEMODE_SAVEDATA_LOAD        = 100;
 const GAMEMODE_GAME					= 500;
 const GAMEMODE_DEBUG                = 999;
 
@@ -20,18 +21,13 @@ const GAMEMODE_DEBUG                = 999;
 //--------------------------------------------------------------------------------------
 //使用するテクスチャ定義
 //--------------------------------------------------------------------------------------
-const TEXTURE_GDCLOGO		= 0;		
-const TEXTURE_BG			= 1;	
-const TEXTURE_TESTOBJ		= 2;	
-const TEXTURE_TITLE			= 3;
-const TEXTURE_ROOM_PARTS	= 4;
+const TEXTURE_BG			= 1;
+const TEXTURE_HEART         = 2;
+const TEXTURE_NORMA         = 3;
 const TEXTURE_HITCHECK		= 5;
-const TEXTURE_PLAYER_IDLING	= 6;
-const TEXTURE_KIDS			= 7;
 const TEXTURE_FADE_BLACK	= 10;
 const TEXTURE_FADE_WHITE	= 11;
 
-const TEXTURE_TEST_RED      = 12;
 const TEXTURE_TEST_BLUE     = 13;
 const TEXTURE_STEP_FONT     = 14;
 
@@ -54,6 +50,14 @@ const TEXTURE_OPENMES		= 103;
 const SE_DECIDE			= 0;			//決定
 
 
+
+//--------------------------------------------------------------------------------------
+//  定数定義のようなもの
+//--------------------------------------------------------------------------------------
+const HEART_SCALE   = ( WP / 10 ) * 3;
+
+
+
 //--------------------------------------------------------------------------------------
 //外部変数
 //--------------------------------------------------------------------------------------
@@ -72,14 +76,40 @@ let _isStep = false;
 
 let how_many_day;
 
-const term1_list = [ 0x11, 0x21 ];
+const term1_list = [ 0x011, 0x021 ];
 const term2_list = 
 [ 
-    [ 0x111, 0x211 ],
-    [ 0x121, 0x221 ]
+    [ 0x0111, 0x0211, 0x0311, 0x0411 ],
+    [ 0x0121, 0x0121, 0x0221, 0x0221 ]
+];;
+
+const term3_list = 
+[
+    [
+        [ 0x1111, 0x1111 ],
+        [ 0x1211, 0x1211 ],
+        [ 0x1311, 0x1311 ],
+        [ 0x1411, 0x1411 ],
+    ],
+    
+    [
+        [ 0x1121, 0x1121 ],
+        [ 0x1221, 0x1221 ],
+    ],
 ];
 
 
+
+const length_of_stay =
+[
+    1, 2, 3, 4
+];
+
+
+const life_max_box =
+[
+    4, 6, 8, 10,
+];
 
 
 
@@ -117,7 +147,21 @@ const step_number_font_rect =
     [ 50 * 4 + 1, 50 * 1 + 1, 50 - 2, 50 - 2, ( 50 - 2 ) / 2, ( 50 - 2 ) / 2 ],
 ];
 
+const bg_rect =
+[
+    [ 0, 0, 512, 758, 512 / 2, 758 / 2 ],
+];
 
+const life_rect =
+[   
+    [   0,   0, 128, 256, 128, 128 ],
+    [ 128,   0, 128, 256,   0, 128 ]
+];
+
+const norma_rect =
+[
+    [ 0, 0, 256, 128, 256 / 2, 128 / 2 ],
+];
 
 
 
@@ -160,29 +204,14 @@ function GAME_memory_get_routine()
 function GAME_system_grp_load( )
 {
 	FADE_grp_load();
-	SOZ_Texture_Load( TEXTURE_GDCLOGO		, "grp/gdc_logo.png" );
-	SOZ_Texture_Load( TEXTURE_BG			, "grp/base.png" );
-	SOZ_Texture_Load( TEXTURE_ROOM_PARTS	, "grp/room_parts.png" );
-//	SOZ_Texture_Load( TEXTURE_TESTOBJ		, "grp/room3.png" );
-	SOZ_Texture_Load( TEXTURE_TITLE			, "grp/title.png" );
-	SOZ_Texture_Load( TEXTURE_HITCHECK		, "grp/hit_check.png" );
-	SOZ_Texture_Load( TEXTURE_PLAYER_IDLING	, "grp/gomashio.png" );
-	SOZ_Texture_Load( TEXTURE_KIDS			, "grp/kids.png" );
-	SOZ_Texture_Load( TEXTURE_PLANE			, "grp/airplane01.png" );
-	SOZ_Texture_Load( TEXTURE_LINE			, "grp/line_0.png" );
+	
+	SOZ_Texture_Load( TEXTURE_BG            , "grp/bg.png" );
+    SOZ_Texture_Load( TEXTURE_HITCHECK		, "grp/hit_check.png" );
+    SOZ_Texture_Load( TEXTURE_HEART         , "grp/heart.png" );
+    SOZ_Texture_Load( TEXTURE_NORMA         , "grp/norma.png" ); 
 
-    SOZ_Texture_Load( TEXTURE_TEST_RED    	, "grp/test.png" );
     SOZ_Texture_Load( TEXTURE_TEST_BLUE     , "grp/test2.png" );
     SOZ_Texture_Load( TEXTURE_STEP_FONT     , "grp/font.png" );
-    
-	SOZ_Texture_Load( TEXTURE_OPEN1			, "grp/open1.png" );
-	SOZ_Texture_Load( TEXTURE_OPEN2			, "grp/open2.png" );
-	SOZ_Texture_Load( TEXTURE_OPEN3			, "grp/open3.png" );
-	SOZ_Texture_Load( TEXTURE_OPENMES		, "grp/openmes.png" );
-
-    SOZ_Texture_Load( 150 + 0, "grp/001.png" );
-    SOZ_Texture_Load( 155 + 0, "grp/011.png" );    
-    SOZ_Texture_Load( 165 + 0, "grp/111.png" );
 }
 
 
@@ -190,62 +219,154 @@ function GAME_system_grp_load( )
 
 
 //---------------------------------------------------------
-//  何期なのか判別する関数  
+//    ノルマを表示
 //---------------------------------------------------------
-function term_discriminator( id )
+function GAME_norma_exec( ap )
 {
-    let t = 2;  // 2期
-    let mask = 0xf00;
-    
-    if( ( mask & id ) == 0 )
-        t = 1;  // 1期
+}
+function GAME_norma2_exec( ap )
+{
+    if( work1[ ap ] == 0 ) 
+        anime_no[ ap ] = norma_step_number % 10;
     else
-        return t;
-
-    mask = mask >> 4;
+        anime_no[ ap ] = Math.floor( norma_step_number / ( 10 ** work1[ ap ] ) ) % 10; 
+}
+function GAME_norma_start()
+{
+    let ap,i;
     
-    if( ( mask & id ) == 0 )
-    {    
-        t = 0;
-        return t;
+    ap = TASK_start_GRP( GAME_norma_exec, 0, TEXTURE_NORMA, norma_rect, 0, "ノルマ" );
+    pos_x[ ap ] = ( WINDOW_WIDTH  / 100 ) * 25 * WP;
+    pos_y[ ap ] = ( WINDOW_HEIGHT / 10 ) * 8 * WP;
+    pos_p[ ap ] = 310 * WP;
+    scale_x[ ap ] = ( WP / 10 ) * 6;
+    scale_y[ ap ] = scale_x[ ap ];
+
+    for( i = 0; i < 5; i++ )
+    {
+        ap = TASK_start_GRP( GAME_norma2_exec, 0, TEXTURE_STEP_FONT, step_number_font_rect, 0, "歩数を表示する" );
+        pos_x[ ap ] = ( WINDOW_WIDTH  / 100 ) * 25 * WP + 30 * ( i + 4 ) * WP;
+        pos_x[ ap ] = ( WINDOW_WIDTH - 30 * ( i + 1 ) ) * WP;
+        pos_y[ ap ] = ( WINDOW_HEIGHT / 10 ) * 8 * WP;
+        pos_p[ ap ] = 1000 * WP;
+        work1[ ap ] = i;
+        anime_no[ ap ] = 0;
+        scale_x[ ap ] = ( WP / 10 ) * 7;
+        scale_y[ ap ] = scale_x[ ap ];
     }
-    else
-        return t;
 }
 
 
 
 
+
 //---------------------------------------------------------
-//  キャラクターのID（期間内での）を返す  
+//    ライフを表示
 //---------------------------------------------------------
-function get_character_id_in_term( id, term )
+function GAME_life_exec( ap )
 {
-    let mask = 0xf;
-    mask = mask << ( 4 * term );
-    id &= mask;
-    id = ( id >> ( 4 * term ) ) - 1;
-    return id; 
+    
+}
+function GAME_life_start()
+{
+    let ap;
+    let i;
+    
+    for( i = 0; i < life_value; i += 2 )
+    {
+        ap = TASK_start_GRP( GAME_life_exec, 0, TEXTURE_HEART, life_rect, 0, "ライフ" );
+        pos_x[ ap ] = ( WINDOW_WIDTH / 10 ) * ( i + 1 ) * WP;
+        pos_y[ ap ] = ( WINDOW_HEIGHT / 10 ) * 9 * WP;
+        pos_p[ ap ] = 300 * WP;
+        scale_x[ ap ] = HEART_SCALE;
+        scale_y[ ap ] = HEART_SCALE;
+        
+        if( i + 1 < life_value )
+        {
+            ap = TASK_start_GRP( GAME_life_exec, 0, TEXTURE_HEART, life_rect, 1, "ライフ" );
+            pos_x[ ap ] = ( WINDOW_WIDTH / 10 ) * ( i + 1 ) * WP;
+            pos_y[ ap ] = ( WINDOW_HEIGHT / 10 ) * 9 * WP;
+            pos_p[ ap ] = 300 * WP;
+            scale_x[ ap ] = HEART_SCALE;
+            scale_y[ ap ] = HEART_SCALE;
+        }
+    }
 }
 
 
 
+
 //---------------------------------------------------------
-//  キャラクターを表示（動作が安定するまではフォントで表します） 
+//  キャラクターを表示
 //---------------------------------------------------------
 function GAME_character_exec( ap )
 {
+    scale_x[ ap ] = work5[ ap ] + SOZ_get_SIN( ang_x[ ap ] ) * work3[ ap ];
+    scale_y[ ap ] = work5[ ap ] + SOZ_get_COS( ang_x[ ap ] ) * work3[ ap ];
+    ang_x[ ap ] += 0x800;
     
+    switch( work2[ ap ] )
+    {
+		case 0:
+			if( Rand2( 0, 100 ) == 0 )
+				work2[ ap ] = 1;		//モーションさせる
+			break;
+
+		case 1:
+			work3[ ap ] += WP / 200;
+			if( work3[ ap ] >= WP / 6 )
+				work2[ ap ] =2;
+			break;
+
+		case 2:
+			work3[ ap ] -= WP / 200;
+			if( work3[ ap ] <= 0 * WP )
+			{
+				work3[ ap ] = 0;
+				work2[ ap ] = 0;
+			}
+			break;
+	}
+    
+    switch( work6[ ap ] )   // 移動管理用
+    {
+        case 0:
+            vec_x[ ap ] = Rand2( - 1, 2 ) * WP;
+            work7[ ap ] = Rand2( 60, 60 * 3 );
+            work6[ ap ]++;
+            break;
+        
+        case 1:
+            work7[ ap ]--;
+            pos_x[ ap ] += vec_x[ ap ];
+            
+            if( work7[ ap ] <= 0 ) 
+                work6[ ap ]--;
+                
+            if( pos_x[ ap ] <= 0 )
+            {
+                vec_x[ ap ] = WP;    
+                work7[ ap ] = Rand2( 60, 60 * 3 );
+            }    
+                
+            if( WINDOW_WIDTH * WP <= pos_x[ ap ] )
+            {
+                vec_x[ ap ] = - WP;
+                work7[ ap ] = Rand2( 60, 60 * 3 );
+            }    
+            break;
+    }
 }
 function GAME_character_start()
 {
     let i;
     let ap;
-    let add = 0;
-    let tex = 150 + get_character_id_in_term( step_number_table[ how_many_day ][ 1 ], term_discriminator( step_number_table[ how_many_day ][ 1 ] ) ); 
-
-    for( i = term_discriminator( step_number_table[ how_many_day ][ 1 ] ) - 1; 0 <= i; i-- )
-        tex += 5 * ( 2 ** i );
+    let tex = 150 + step_number_table[ how_many_day ][ 1 ];
+    let gn = "grp/";
+    gn += step_number_table[ how_many_day ][ 1 ].toString(16);
+    gn += ".png";
+    
+    SOZ_Texture_Load( tex, gn );
     
     ap = TASK_start_GRP( GAME_character_exec, 0, tex, uv512_512_rect, 0, "キャラクター本体" );
     
@@ -254,10 +375,29 @@ function GAME_character_start()
     pos_p[ ap ] = 200 * WP;
     scale_x[ ap ] = WP / 2;
     scale_y[ ap ] = scale_x[ ap ];
-    str[ ap ] = String( Number( step_number_table[ how_many_day ][ 1 ] ).toString( 16 ) );
+    work5[ ap ] = WP / 2;
+    work6[ ap ] = 0;
 }
 
 
+
+
+
+//---------------------------------------------------------
+// 背景
+//---------------------------------------------------------
+function GAME_bg_exec( ap )
+{
+    
+}
+function GAME_bg_start()
+{
+    let ap;
+    ap = TASK_start_GRP( GAME_bg_exec, 0, TEXTURE_BG, bg_rect, 0, "背景" );
+    pos_x[ ap ] = WINDOW_WIDTH / 2 * WP;
+    pos_y[ ap ] = WINDOW_HEIGHT / 2 * WP;
+    pos_p[ ap ] = 100 * WP;
+}
 
 
 
@@ -349,7 +489,7 @@ function GAME_jump_game_mode_exec( ap )
         
     if( work4[ ap ] <= work1[ ap ] )            // 指定した回数連打されたら
     {    
-        game_type = GAMEMODE_GAME;
+        game_type = GAMEMODE_GAME + 1;
         TASK_end_group( 120 );                  // デバッグ情報を全削除
         TASK_end( ap );
         return;
@@ -370,26 +510,6 @@ function GAME_jump_game_mode()
 
 
 
-
-
-//---------------------------------------------------------
-// 試しに赤いグラフィックを
-//---------------------------------------------------------
-function GAME_test_red_square_exec( ap )
-{
-    if( mouse_click < 1 )
-        base_color_a[ ap ] = 0;
-    else
-        base_color_a[ ap ] = 255;
-}
-function GAME_test_red_square_start()
-{
-    let ap;
-    ap = TASK_start_GRP( GAME_test_red_square_exec, 0, TEXTURE_TEST_RED, test_red_rect, 0, "試しに赤いグラフィックを" );
-	pos_x[ ap ] = ( WINDOW_WIDTH / 2 ) * WP;
-	pos_y[ ap ] = ( WINDOW_HEIGHT / 2 ) * WP;
-	pos_p[ ap ] = 100 * WP;
-}
 
 
 
@@ -456,6 +576,7 @@ function GAME_step_number_controler_exec( ap )
     {   
        work2[ ap ] = 0;                         // 遷移を戻す
        work3[ ap ] = 0;                         // 長押しされたフレーム数のカウンターをリセット
+       work4[ ap ] = 0;
     }
     
     switch( work2[ ap ] )
@@ -467,10 +588,18 @@ function GAME_step_number_controler_exec( ap )
             
         case 1:
             if( WINDOW_WIDTH / 2 < mouse_x )    // タッチされているのが半分よりも右側であった場合
-                _step++;
+            {    
+                work5[ ap ] = 0;
+                work4[ ap ]++;
+                _step += work4[ ap ];
+            }
                 
             if( WINDOW_WIDTH / 2 > mouse_x )    // タッチされているのが半分よりも左側であった場合
-                _step--;
+            {    
+                work4[ ap ] = 0;
+                work5[ ap ]++;
+                _step -= work5[ ap ];
+            }
             
             if( _step < 0 )                     // ０よりも小さい値にはさせない
                 _step = 0;
@@ -485,6 +614,8 @@ function GAME_step_number_controler_start()
     work1[ ap ] = 60;   // 何秒以上押したら歩数を制御できるか
     work2[ ap ] = 0;    // タスクの遷移状態
     work3[ ap ] = 0;    // 長押しされている間のフレーム数をカウントする
+    work4[ ap ] = 0;    // 少しずつ増えていくペースが速くなっていく
+    work5[ ap ] = 0;    // 少しずつ減っていくペースが速くなっていく
 }
 
 
@@ -697,6 +828,81 @@ function GAME_data_clear_controler_start()
 
 
 
+//--------------------------------------------------------------------------------------
+//    ノルマを表示する
+//--------------------------------------------------------------------------------------
+function GAME_norma_output_exec( ap )
+{
+    str[ ap ] = String( norma_step_number );
+}
+function GAME_norma_output_start()
+{
+    let ap;
+    ap = TASK_start_FONT( GAME_norma_output_exec, 120, "", 0, 10 );
+    pos_x[ ap ] = 10 * WP;
+    pos_y[ ap ] = ( WINDOW_HEIGHT - 25 - 30 ) * WP;
+    pos_p[ ap ] = 100000 * WP;
+    str[ ap ] = String( norma_step_number );
+}
+
+
+
+
+
+//--------------------------------------------------------------------------------------
+//    ライフを表示する
+//--------------------------------------------------------------------------------------
+function GAME_life_output_exec( ap )
+{
+    str[ ap ] = String( life_value );
+    str[ ap ] += "/";
+    str[ ap ] += String( life_max_box[ term_discriminator( step_number_table[ how_many_day ][ 1 ] ) ] );
+}
+function GAME_life_output_start()
+{
+    let ap;
+    ap = TASK_start_FONT( GAME_life_output_exec, 120, "", 0, 10 );
+    pos_x[ ap ] = 10 * WP;
+    pos_y[ ap ] = ( WINDOW_HEIGHT - 25 - 45 ) * WP;
+    pos_p[ ap ] = 100000 * WP;
+}
+
+
+
+
+
+
+//--------------------------------------------------------------------------------------
+//    何期であるか
+//--------------------------------------------------------------------------------------
+function GAME_term_output_exec( ap )
+{
+    str[ ap ] = String( term_discriminator( step_number_table[ how_many_day ][ 1 ] ) );
+}
+function GAME_term_output_start()
+{
+    let ap;
+    ap = TASK_start_FONT( GAME_term_output_exec, 120, "", 0, 10 );
+    pos_x[ ap ] = 10 * WP;
+    pos_y[ ap ] = ( WINDOW_HEIGHT - 25 - 60 ) * WP;
+    pos_p[ ap ] = 100000 * WP;
+    str[ ap ] = String( term_discriminator( step_number_table[ how_many_day ][ 1 ] ) );
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 //--------------------------------------------------------------------------------------
@@ -704,7 +910,7 @@ function GAME_data_clear_controler_start()
 //--------------------------------------------------------------------------------------
 function GAME_step_number_save()
 {
-    if( _step != _step_backup )
+    if( _step != _step_backup ) // 歩数が変わったらデータを保存する
     {
         step_number_table[ how_many_day ][ 0 ] = _step; 
         last_boot_time = new Date();
@@ -716,13 +922,14 @@ function GAME_step_number_save()
 
 
 
+
 //--------------------------------------------------------------------------------------
 //    日付の差分日数を返却する
 //--------------------------------------------------------------------------------------
 function getDiff(date1Str, date2Str) 
 {
     var date1 = new Date(date1Str);
-	var date2 = new Date(date2Str);
+    var date2 = new Date(date2Str);
  
 	// getTimeメソッドで経過ミリ秒を取得し、２つの日付の差を求める
     var msDiff = date2.getTime() - date1.getTime();
@@ -736,11 +943,285 @@ function getDiff(date1Str, date2Str)
 
 
 
+//--------------------------------------------------------------------------------------
+//    日付が変わったら遷移させる
+//--------------------------------------------------------------------------------------
+function GAME_init_check()
+{
+    let d = getDiff( new Date( recent_boot_time ), new Date() );
+    let c = 0;
+    let i = 1;                                                                  // ループ用変数
+    
+    if( step_number_table[ d ][ 1 ] == -1 )                                 // まだ進化してない
+    {    
+        console.log( "日付が変わったら遷移させる" );
+        console.log( "d = " + d );
+        console.log( step_number_table[ d ][ 1 ] );
+        
+        while( step_number_table[ d - i ][ 1 ] == - 1 )
+        {
+            console.log( step_number_table[ d - i ][ 1 ] );
+            i++;
+            c++;   
+        }
+        
+        console.log( "c = " + c );
+        
+        for( i = c; 0 < i; i-- )
+        {    
+            revolution_call_check( d - i );
+        }
+        
+        game_type = GAMEMODE_SAVEDATA_LOAD;  
+    }   
+}
+
+
+
+
+
+
+
+
+//---------------------------------------------------------
+//  何期なのか判別する関数  
+//---------------------------------------------------------
+function term_discriminator( id )
+{
+    let t = 3;  // 2期
+    let mask = 0xf000;
+    
+    if( ( mask & id ) == 0 )
+        t = 2;  // 1期
+    else
+        return t;
+
+    mask = mask >> 4;
+    
+    if( ( mask & id ) == 0 )
+        t = 1;  // 1期
+    else
+        return t;
+    
+    mask = mask >> 4;
+    
+    if( ( mask & id ) == 0 )
+    {    
+        t = 0;  // 0期
+        return t;
+    }
+    else
+        return t;
+}
+
+
+
+
+//---------------------------------------------------------
+//  キャラクターのID（期間内での）を返す  
+//---------------------------------------------------------
+function get_character_id_in_term( id, term )
+{
+    let mask = 0xf;
+    mask = mask << ( 4 * term );
+    id &= mask;
+    id = ( id >> ( 4 * term ) ) - 1;
+    return id; 
+}
+
+
+
+
+
+
 
 
 //--------------------------------------------------------------------------------------
-//    進化判定関数
+//    その時期になって何日目であるかカウントし、返す
 //--------------------------------------------------------------------------------------
+function how_many_day_in_term( day )
+{
+    let i, ba;
+    let cnt = 1;
+
+    ba = term_discriminator( step_number_table[ day - 1 ][ 1 ] );
+    
+    for( i = 1; 0 <= day - 1 - i; i++ )
+    {
+        if( term_discriminator( step_number_table[ day - 1 - i ][ 1 ] ) == ba )
+            cnt++;
+        else
+            break;
+    }    
+    
+    console.log( "cnt = " + cnt );
+    return cnt;
+}
+
+
+
+
+
+
+
+//--------------------------------------------------------------------------------------
+//    進化の分岐
+//--------------------------------------------------------------------------------------
+function revolution_branch( t, day )
+{
+    let pID = new Array( 2 ); 
+	pID[ 0 ] = get_character_id_in_term( step_number_table[ day - 1 ][ 1 ], t ); 
+    pID[ 1 ] = get_character_id_in_term( step_number_table[ day - 1 ][ 1 ], t - 1 );
+    console.log( step_number_table[ day - 1 ][ 1 ] );
+ 	console.log( "pID[ 0 ]" + get_character_id_in_term( step_number_table[ day - 1 ][ 1 ], t - 1 ) );
+    console.log( "pID[ 1 ]" + get_character_id_in_term( step_number_table[ day - 1 ][ 1 ], t - 2 ) );
+     
+    switch( t )
+    {
+        case 0:
+            if( life_max_box[ t ] * 8 / 10 <= life_value )    
+                step_number_table[ day ][ 1 ] = term1_list[ 0 ];                           // 強制的に進化させる
+            else
+                step_number_table[ day ][ 1 ] = term1_list[ 1 ];                           // 強制的に進化させる
+            break;
+            
+        case 1:
+            if( life_max_box[ t ] * 8 / 10 <= life_value )    
+                step_number_table[ day ][ 1 ] = term2_list[ pID[ 0 ] ][ 0 ];                           // 強制的に進化させる
+            else
+                step_number_table[ day ][ 1 ] = term2_list[ pID[ 0 ] ][ 1 ];                           // 強制的に進化させる
+            break;
+            
+		case 2:
+			if( life_max_box[ t ] * 8 / 10 <= life_value )    
+                step_number_table[ day ][ 1 ] = term3_list[ pID[ 1 ] ][ pID[ 0 ] ][ 0 ];                           // 強制的に進化させる
+            else
+                step_number_table[ day ][ 1 ] = term3_list[ pID[ 1 ] ][ pID[ 0 ] ][ 1 ];                           // 強制的に進化させる
+			break;
+			
+        case 3:
+            SAVEDATA_gameclear();
+            game_type = GAMEMODE_SAVEDATA_LOAD;
+            break;
+    }
+}
+
+
+
+
+
+
+//--------------------------------------------------------------------------------------
+//    進化チェック関数
+//--------------------------------------------------------------------------------------
+function revolution_check( day )
+{
+    let t = term_discriminator( step_number_table[ day - 1 ][ 1 ] );
+    
+    console.log( "-----day = " + day );
+    console.log( "-----t = " + t );
+    //console.log( length_of_stay[ t ] );
+    //console.log( how_many_day_in_term( day ) );
+    if( length_of_stay[ t ] <= how_many_day_in_term( day ) )
+    {    
+        console.log( ">>進化" );
+        revolution_branch( t, day );
+    }
+    else
+        step_number_table[ day ][ 1 ] = step_number_table[ day - 1 ][ 1 ];    // 進化させない
+}
+
+
+
+
+//--------------------------------------------------------------------------------------
+//    ライフ値の管理用
+//--------------------------------------------------------------------------------------
+function life_control( day )
+{
+    if( norma_step_number <= step_number_table[ day - 1 ][ 0 ] )       // ノルマを達成できた場合はライフをインクリメント
+        life_value++;
+    else
+        life_value--;
+    
+    if( life_value < 0 )                                                        // 0より小さくなった場合                         
+        life_value = 0;                                                         // 0に 
+}
+
+
+
+
+//--------------------------------------------------------------------------------------
+//    ライフ値が最大値を上回ってしまっていた場合は丸める
+//--------------------------------------------------------------------------------------
+function life_round_process( day )
+{
+    if( life_max_box[ term_discriminator( step_number_table[ day ][ 1 ] ) ] < life_value )
+        life_value = life_max_box[ term_discriminator( step_number_table[ day ][ 1 ] ) ];
+}
+
+
+
+
+//--------------------------------------------------------------------------------------
+//    進化チェック関数を呼び出すべきかどうか判断する
+//--------------------------------------------------------------------------------------
+function revolution_call_check( day )
+{    
+    if( step_number_table[ day ][ 1 ] == -1 )   // まだ進化してない
+    {    
+        if( day == 0 )                                                         // 初日であった場合
+            step_number_table[ day ][ 1 ] = 0x001;                             // 強制的に初期キャラのIDを代入
+        else
+        {
+            life_control( day );                                                             // ライフの増減チェック
+            revolution_check( day );                                                         // 進化チェック
+            life_round_process( day );                                                       // ライフ丸め処理
+        }
+    }
+    
+    SAVEDATA_gamesave();
+}
+
+
+
+
+
+
+
+
+
+//--------------------------------------------------------------------------------------
+//    変数の初期化
+//--------------------------------------------------------------------------------------
+function GAME_variable_init()
+{
+    for( i = 0; i < 120; i++ )
+    {    
+        step_number_table[ i ] = new Array( 2 );    // 
+        step_number_table[ i ][ 0 ] = 0;
+        step_number_table[ i ][ 1 ] = - 1;
+    }
+    game_data_table[ 0 ] = 999;                     // とりあえず適当な値を入れておく
+    recent_boot_time = new Date();                  // 初期値　初回でなければ下のロード関連で上書きされる
+    last_boot_time = new Date();
+    life_value = 4;
+    norma_step_number = 1000;                       // ノルマ（とりあえず1000）
+}
+
+
+
+
+//--------------------------------------------------------------------------------------
+//    キャラクターの画像の解放
+//--------------------------------------------------------------------------------------
+function GAME_character_Texture_Release()
+{
+    let i;
+    
+    for( i = 0x0000; i <= 0xffff; i++ )
+        SOZ_Texture_Release( 150 + i );
+}
 
 
 
@@ -819,7 +1300,7 @@ function GAME_main_routine()
 {
     let i, j;      // ループ用カウンタ
     SE_exec();
-	
+    
 	// SHIFT を押しながら H で当たり判定の表示切替
 	if( SOZ_Inkey_DAT( DIK_LSHIFT ) != 0 && SOZ_Inkey_TRG( DIK_H ) != 0 )
 		hitrect_visible_flag++;
@@ -827,75 +1308,45 @@ function GAME_main_routine()
 	if( hitrect_visible_flag % 2 != 0 )
 		Visualize_CollisionDetection();
 
-	click_object = -1;
-	if( SOZ_Mouse_Button( 0 ) != 0 && game_type == GAMEMODE_GAME + 1 )
-	{
-		click_object = CLICK_click_obj( mouse_x, mouse_y);
-	}
-
 	switch( game_type )
 	{
 		//ゲーム初期化
 		case GAMEMODE_INIT:
-			ctx.font = "16px 'メイリオ ボールド'";
+		    ctx.font = "16px 'メイリオ ボールド'";
 
-            // 後々関数化
-            for( i = 0; i < 120; i++ )
-            {    
-                step_number_table[ i ] = new Array( 2 );
-                step_number_table[ i ][ 0 ] = 0;
-                step_number_table[ i ][ 1 ] = 0x000;
-            }
-            game_data_table[ 0 ] = 999;                 // とりあえず適当な値を入れておく
-            recent_boot_time = new Date();                // 初期値　初回でなければ下のロード関連で上書きされる
-            last_boot_time = new Date();
-            
-			SE_load();									//効果音の読み込み
-			TASK_all_init( );							//タスクの全消去
+            GAME_variable_init();                       // 変数の初期化
+            SE_load();									//効果音の読み込み
 			GAME_system_grp_load();						//一番最初にロードすべきもの	
-			SAVEDATA_gameload_1st();					//一番最初のセーブデータ読み込み
-            game_type = GAMEMODE_GAME;
+            
+            game_type = GAMEMODE_SAVEDATA_LOAD;
     		
-            console.log( "ゲームを始めてから経過した日数 " + getDiff( new Date( recent_boot_time ), new Date() ) );
-            console.log( "最後に起動してから経過した日数 " + getDiff( new Date( last_boot_time ), new Date() ) );    
-            how_many_day = getDiff( new Date( recent_boot_time ), new Date() );
             
-            if( step_number_table[ how_many_day ][ 1 ] == 0 )
-            {
-                if( how_many_day == 0 )
-                    step_number_table[ how_many_day ][ 1 ] = 0x001;
-                else
-                {
-                    switch( term_discriminator( step_number_table[ how_many_day - 1 ][ 1 ] ) )
-                    {
-                        case 0:
-                            console.log( "term1" );
-                            step_number_table[ how_many_day ][ 1 ] = term1_list[ 0 ];
-                            break;
-                            
-                        case 1:
-                            console.log( "term2" );
-                            step_number_table[ how_many_day ][ 1 ] = term2_list[ 0 ][ 0 ];
-                            break;
-                    }
-                }
-            }
+            break;
+    
+        case GAMEMODE_SAVEDATA_LOAD:
+            TASK_all_init( );    						                        //タスクの全消去
+            GAME_character_Texture_Release();                                   // キャラクターの画像はすべて解放
             
-            SAVEDATA_gamesave();
+            SAVEDATA_gameload_1st();    				//一番最初のセーブデータ読み込み
+            
+            how_many_day = getDiff( new Date( recent_boot_time ), new Date() ); // 最後に起動してから経過した日数を求める
+            revolution_call_check( how_many_day );                                            // 進化判定関数を呼び出すかどうか
             
             //後々関数化
             last_boot_time = new Date();
             _step = step_number_table[ how_many_day ][ 0 ];
             _step_backup = _step;
+            
+            game_type = GAMEMODE_GAME;
             break;
-
 
 		//ゲーム本体
 		case GAMEMODE_GAME:											//ゲームに行く前の準備
-            GAME_test_red_square_start();
-            GAME_test_touch_pos_start();
             GAME_step_number_start();
-            GAME_character_start();
+            PLAYER_character_start();
+            GAME_life_start();
+            GAME_norma_start();
+            GAME_bg_start();
             game_type++;
 			break;
 
@@ -908,10 +1359,13 @@ function GAME_main_routine()
         case GAMEMODE_DEBUG:
             GAME_step_number_controler_start();                         // 歩数を制御
             GAME_time_output_start();                                   // 現在の時刻を表示
-            GAME_recent_boot_time_output_start();                         // 最後に起動した時刻を表示
+            GAME_recent_boot_time_output_start();                       // 最後に起動した時刻を表示
             GAME_last_boot_time_output_start();
             GAME_data_clear_controler_start();                          // データ消去制御
             GAME_all_step_number_output_start();                        // 過去の歩数を表示
+            GAME_norma_output_start();                                  // ノルマを表示
+            GAME_life_output_start();                                   // ライフを表示
+            GAME_term_output_start();                                   // 何期であるかを表示
             
             GAME_jump_game_mode();
             game_type++;
@@ -919,7 +1373,12 @@ function GAME_main_routine()
 	}
 
     GAME_step_number_save();
-	GetKey_Routine();
+    GetKey_Routine();
+
+    if( GAMEMODE_GAME <= game_type )
+        GAME_init_check();                                              // ゲームの初期化
+
+
 
 	if( mouse_click == 1 )
 		mouse_click_time++;

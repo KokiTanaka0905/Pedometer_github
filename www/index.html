@@ -9,22 +9,9 @@
 		<script type="text/javascript"> 
 			var ua = navigator.userAgent;
 			
-			if( ua.indexOf('Android') != -1 )
-			{	
-                document.write('<link rel="stylesheet" href="Android_style.css">');
-				document.write('<meta charset="UTF-8" name="viewport" content="width=device-width, target-densitydpi=device-dpi,initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no" >');
-			}	
-			else if( ua.indexOf('iPhone') != -1 )
-			{
-                document.write('<link rel="stylesheet" href="iOS_style.css">');
-				document.write('<meta charset="UTF-8" name="viewport" content="width=device-width, target-densitydpi=device-dpi,initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no" >');
-			}
-			else
-			{
-				document.write('<link rel="stylesheet" href="PC_style.css">');
-				document.write('<meta charset="UTF-8">');
-			}
-			
+            document.write('<link rel="stylesheet" href="style.css">');
+    		document.write('<meta charset="UTF-8">');
+            
 			if(ua.indexOf('iPhone') != -1 || ua.indexOf('Android') != -1){
 			//iPhone & Android
 			document.write('<meta charset="UTF-8" name="viewport" content="width=device-width, target-densitydpi=device-dpi,initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no" >');
@@ -61,18 +48,12 @@
 	<script src='js/SOZ_sound.js'></script>
 	<script src='js/SOZ_hitcheck.js'></script>
 
-	<script src='js/SYSTEM_savedata.js'></script>
-
-	<script src='js/GAME_click_system.js'></script>
-	<script src='js/GAME_room.js'></script>
-	<script src='js/GAME_object01.js'></script>
-	<script src='js/GAME_object02.js'></script>
+	<script src='js/SYSTEM_savedata.js'></script>    
+    
 	<script src='js/GAME_fade.js'></script>
-	<script src='js/GAME_opening.js'></script>
-	<script src='js/GAME_title.js'></script>
-	<script src='js/GAME_player.js'></script>
 	<script src='js/GAME.js'></script>
-	
+	<script src='js/GAME_player.js'></script>
+    
 	</body>
 
 <html>

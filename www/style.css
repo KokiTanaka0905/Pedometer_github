@@ -1,6 +1,18 @@
+.wrapper{
+  width: 100%;
+  height: 100%;
+}
+
 canvas 
 {
     display: block;
     margin: auto;
     border: 1px solid black;
+}
+
+body
+{
+    overflow-y: hidden;
+    overflow-x: hidden;
+    background-color: #000000;
 }
