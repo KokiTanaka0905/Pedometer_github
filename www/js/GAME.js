@@ -31,13 +31,6 @@ const TEXTURE_FADE_WHITE	= 11;
 const TEXTURE_TEST_BLUE     = 13;
 const TEXTURE_STEP_FONT     = 14;
 
-const TEXTURE_LINE			= 98;
-const TEXTURE_PLANE			= 99;			//ちょっと荒いけど利用させてもらう
-//100番移行は汎用メモリ
-const TEXTURE_OPEN1			= 100;			//オープニング（汎用だけど最初に読み込む
-const TEXTURE_OPEN2			= 101;
-const TEXTURE_OPEN3			= 102;
-const TEXTURE_OPENMES		= 103;
 
 
 
@@ -68,6 +61,7 @@ let hitrect_visible_flag = 0;
 // 重力加速度のしきい値
 const GRAVITY_MIN = 9.8;
 const GRAVITY_MAX = 12.00;
+
 // 歩数
 let _step = 0;
 let _step_backup = 0;
@@ -1405,21 +1399,24 @@ function onDeviceMotion(e)
 {
     e.preventDefault();
     // 重力加速度を取得
-    var ag = e.accelerationIncludingGravity;
+    let ag = e.accelerationIncludingGravity;
     // 重力加速度ベクトルの大きさを取得
-    var acc = Math.sqrt(ag.x*ag.x + ag.y*ag.y + ag.z*ag.z);
-    // 
-    if (_isStep) {
+    let acc = Math.sqrt( ag.x*ag.x + ag.y*ag.y + ag.z*ag.z );
+     
+    if( _isStep ) 
+    {
         // 歩行中にしきい値よりも低ければ一歩とみなす
-        if (acc < GRAVITY_MIN) {
+        if (acc < GRAVITY_MIN) 
+        {
             _step++;
             _isStep = false;
         }
-    } else {
+    } 
+    else 
+    {
         // しきい値よりも大きければ歩いているとみなす
-        if (acc > GRAVITY_MAX) {
-            _isStep = true;
-        }
+        if (acc > GRAVITY_MAX)
+            _isStep = true;    
     }
 }
 
